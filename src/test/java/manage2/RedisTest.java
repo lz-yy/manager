@@ -6,7 +6,10 @@ import com.voucher.manage2.service.impl.Word2PdfServiceImpl;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Random;
+import java.util.Scanner;
 
 /**
  * @author lz

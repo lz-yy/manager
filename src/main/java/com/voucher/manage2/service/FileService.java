@@ -1,9 +1,9 @@
 package com.voucher.manage2.service;
 
 
+import com.voucher.manage2.tkmapper.entity.UploadFile;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 /**
  * @Author lz
@@ -13,7 +13,8 @@ import java.util.List;
 
 public interface FileService {
 
-    String fileUpload(MultipartFile file, List<String> roomGuids, String menuGuid);
+    @Transactional(rollbackFor = Exception.class)
+    <T> UploadFile fileUpload(MultipartFile file, String menuGuid, T param);
 
     void delFile(String fileGuid);
 

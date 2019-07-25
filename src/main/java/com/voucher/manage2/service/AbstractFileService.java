@@ -1,12 +1,9 @@
-package com.voucher.manage2.service.impl;
+package com.voucher.manage2.service;
 
 import cn.hutool.core.io.FileTypeUtil;
 import cn.hutool.core.util.IdUtil;
-import com.voucher.manage2.constant.MenuConstant;
 import com.voucher.manage2.exception.BaseException;
 import com.voucher.manage2.exception.FileUploadException;
-import com.voucher.manage2.constant.FileConstant;
-import com.voucher.manage2.service.FileService;
 import com.voucher.manage2.tkmapper.entity.RoomFile;
 import com.voucher.manage2.tkmapper.entity.UploadFile;
 import com.voucher.manage2.tkmapper.mapper.RoomFileMapper;
@@ -14,22 +11,12 @@ import com.voucher.manage2.tkmapper.mapper.UploadFileMapper;
 import com.voucher.manage2.utils.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.FilterReader;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.voucher.manage2.tkmapper.entity.Menu;
-import com.voucher.manage2.tkmapper.mapper.MenuMapper;
 import tk.mybatis.mapper.entity.Example;
-
-import java.util.ArrayList;
-import java.util.UUID;
 
 /**
  * @author lz
@@ -37,20 +24,21 @@ import java.util.UUID;
  * @date 2019/5/20
  */
 @SuppressWarnings("ALL")
-@Service
 @Slf4j
-public class FileServiceImpl implements FileService {
+public abstract class AbstractFileService implements FileService {
     @Autowired
     private UploadFileMapper uploadFileMapper;
     @Autowired
     private RoomFileMapper roomFileMapper;
 
+    protected abstract <T> void doAdditional(String menuGuid, String fileGuid, T param);
+
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String fileUpload(MultipartFile file, List<String> roomGuids, String menuGuid) {
-
+    public <T> UploadFile fileUpload(MultipartFile file, String menuGuid, T param) {
         String fileName = IdUtil.simpleUUID() + "_" + file.getOriginalFilename();
         File tarFile = tarFile = FileUtils.getFileByFileName(fileName);
+        UploadFile uploadFile = null;
         try {
             //文件后缀名
             String suffixName = FileTypeUtil.getType(file.getInputStream());
@@ -68,22 +56,14 @@ public class FileServiceImpl implements FileService {
             //
             //}
             //文件入库
-            UploadFile uploadFile = new UploadFile();
+            uploadFile = new UploadFile();
             uploadFile.setGuid(fileName);
             uploadFile.setType(fileType);
             uploadFile.setUploadTime(System.currentTimeMillis());
             uploadFile.setUrl(FileUtils.getFileUrlPath(fileName));
             uploadFile.setMenuGuid(menuGuid);
             uploadFileMapper.insert(uploadFile);
-            //文件资产关系入库
-            List<RoomFile> roomFiles = roomGuids.stream().map(roomGuid -> {
-                RoomFile roomFile = new RoomFile();
-                roomFile.setFileGuid(fileName);
-                roomFile.setRoomGuid(roomGuid);
-                roomFile.setMenuGuid(menuGuid);
-                return roomFile;
-            }).collect(Collectors.toList());
-            roomFileMapper.insertList(roomFiles);
+            doAdditional(menuGuid, fileName, param);
         } catch (Exception e) {
             //log.warn("文件入库异常!", e);
             if (tarFile.exists()) {
@@ -92,7 +72,7 @@ public class FileServiceImpl implements FileService {
             throw new FileUploadException(file.getOriginalFilename(), e);
         }
         //返回文件名
-        return fileName;
+        return uploadFile;
     }
 
     @Override

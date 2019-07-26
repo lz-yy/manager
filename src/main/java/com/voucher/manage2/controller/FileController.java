@@ -6,6 +6,7 @@ import com.voucher.manage2.exception.BaseException;
 import com.voucher.manage2.exception.FileUploadException;
 import com.voucher.manage2.redis.JedisUtil0;
 import com.voucher.manage2.service.FileService;
+import com.voucher.manage2.tkmapper.entity.UploadFile;
 import com.voucher.manage2.utils.MapUtils;
 import com.voucher.manage2.utils.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +41,9 @@ public class FileController {
     @Autowired
     private CommonsMultipartResolver multipartResolver;
 
-    @PostMapping("upload")
+    @PostMapping("roomFileUpload")
     @ResponseBody
-    public void springUpload(HttpServletRequest request, String[] roomGuids, String menuGuid) {
+    public void roomFileUpload(HttpServletRequest request, String[] roomGuids, String menuGuid) {
         //检查form中是否有enctype="multipart/form-data"
         if (ObjectUtils.isEmpty(menuGuid, roomGuids)) {
             throw BaseException.getDefault("请选择资产和菜单");
@@ -57,10 +58,29 @@ public class FileController {
                 //一次遍历所有文件
                 MultipartFile file = multiRequest.getFile(iter.next().toString());
                 if (file != null) {
-                    fileService.fileUpload(file, Lists.newArrayList(roomGuids), menuGuid);
+                    fileService.roomFileUpload(file, Lists.newArrayList(roomGuids), menuGuid);
                 }
             }
         }
+    }
+
+    @PostMapping("fileUpload")
+    @ResponseBody
+    public UploadFile fileUpload(HttpServletRequest request, String menuGuid) {
+        //检查form中是否有enctype="multipart/form-data"
+        if (multipartResolver.isMultipart(request)) {
+            //将request变成多部分request
+            MultipartHttpServletRequest multiRequest = (MultipartHttpServletRequest) request;
+            //获取multiRequest 中所有的文件名
+            Iterator iter = multiRequest.getFileNames();
+            if (iter.hasNext()) {
+                MultipartFile file = multiRequest.getFile(iter.next().toString());
+                if (file != null) {
+                    return fileService.fileUpload(file, menuGuid);
+                }
+            }
+        }
+        return null;
     }
 
     @GetMapping(value = "/download")

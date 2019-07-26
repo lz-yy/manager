@@ -12,6 +12,7 @@ import com.voucher.manage2.tkmapper.entity.UploadFile;
 import com.voucher.manage2.tkmapper.mapper.RoomFileMapper;
 import com.voucher.manage2.tkmapper.mapper.UploadFileMapper;
 import com.voucher.manage2.utils.FileUtils;
+import com.voucher.manage2.utils.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,13 +45,50 @@ public class FileServiceImpl implements FileService {
     private UploadFileMapper uploadFileMapper;
     @Autowired
     private RoomFileMapper roomFileMapper;
+    @Autowired
+    private FileService fileService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String fileUpload(MultipartFile file, List<String> roomGuids, String menuGuid) {
+    public String roomFileUpload(MultipartFile file, List<String> roomGuids, String menuGuid) {
+        UploadFile uploadFile = fileService.fileUpload(file, menuGuid);
+        if (ObjectUtils.isNotEmpty(uploadFile)) {
+            List<RoomFile> roomFiles = roomGuids.stream().map(roomGuid -> {
+                RoomFile roomFile = new RoomFile();
+                roomFile.setFileGuid(uploadFile.getGuid());
+                roomFile.setRoomGuid(roomGuid);
+                roomFile.setMenuGuid(menuGuid);
+                return roomFile;
+            }).collect(Collectors.toList());
+            roomFileMapper.insertList(roomFiles);
+            //返回文件名
+            return uploadFile.getGuid();
+        }
+        return null;
+    }
 
-        String fileName = IdUtil.simpleUUID() + "_" + file.getOriginalFilename();
-        File tarFile = tarFile = FileUtils.getFileByFileName(fileName);
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delFile(String fileGuid) {
+        Example example1 = new Example(UploadFile.class);
+        example1.createCriteria().andEqualTo("guid", fileGuid);
+        uploadFileMapper.deleteByExample(example1);
+
+        Example example = new Example(RoomFile.class);
+        example.createCriteria().andEqualTo("fileGuid", fileGuid);
+        roomFileMapper.deleteByExample(example);
+
+        File file = FileUtils.getFileByFileName(fileGuid);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UploadFile fileUpload(MultipartFile file, String menuGuid) {
+        String fileGuid = IdUtil.simpleUUID() + "_" + file.getOriginalFilename();
+        File tarFile = tarFile = FileUtils.getFileByFileName(fileGuid);
         try {
             //文件后缀名
             String suffixName = FileTypeUtil.getType(file.getInputStream());
@@ -69,46 +107,19 @@ public class FileServiceImpl implements FileService {
             //}
             //文件入库
             UploadFile uploadFile = new UploadFile();
-            uploadFile.setGuid(fileName);
+            uploadFile.setGuid(fileGuid);
             uploadFile.setType(fileType);
             uploadFile.setUploadTime(System.currentTimeMillis());
-            uploadFile.setUrl(FileUtils.getFileUrlPath(fileName));
+            uploadFile.setUrl(FileUtils.getFileUrlPath(fileGuid));
             uploadFile.setMenuGuid(menuGuid);
             uploadFileMapper.insert(uploadFile);
-            //文件资产关系入库
-            List<RoomFile> roomFiles = roomGuids.stream().map(roomGuid -> {
-                RoomFile roomFile = new RoomFile();
-                roomFile.setFileGuid(fileName);
-                roomFile.setRoomGuid(roomGuid);
-                roomFile.setMenuGuid(menuGuid);
-                return roomFile;
-            }).collect(Collectors.toList());
-            roomFileMapper.insertList(roomFiles);
         } catch (Exception e) {
-            //log.warn("文件入库异常!", e);
+            log.warn("文件入库异常!", e);
             if (tarFile.exists()) {
                 tarFile.delete();
             }
             throw new FileUploadException(file.getOriginalFilename(), e);
         }
-        //返回文件名
-        return fileName;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void delFile(String fileGuid) {
-        Example example1 = new Example(UploadFile.class);
-        example1.createCriteria().andEqualTo("guid", fileGuid);
-        uploadFileMapper.deleteByExample(example1);
-
-        Example example = new Example(RoomFile.class);
-        example.createCriteria().andEqualTo("fileGuid", fileGuid);
-        roomFileMapper.deleteByExample(example);
-
-        File file = FileUtils.getFileByFileName(fileGuid);
-        if (file.exists()) {
-            file.delete();
-        }
+        return null;
     }
 }

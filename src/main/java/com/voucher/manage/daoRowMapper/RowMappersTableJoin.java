@@ -9,11 +9,13 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class RowMappersTableJoin implements RowMapper<Map> {
 
-    JdbcTemplate getJdbcTemplate;
+	List<String> columnList;
     Class<?> className;
     String tableName;
 
@@ -24,9 +26,9 @@ public class RowMappersTableJoin implements RowMapper<Map> {
     private boolean f_Clob = false;//是否需要导入java.sql.*  
     private boolean f_Blob = false;//是否需要导入java.sql.* 
 
-    public RowMappersTableJoin(JdbcTemplate getJdbcTemplate, Class<?> className, String tableName) {
+    public RowMappersTableJoin(List<String> columnList,Class<?> className, String tableName) {
         // TODO Auto-generated constructor stub
-        this.getJdbcTemplate = getJdbcTemplate;
+        this.columnList=columnList;
         this.className = className;
         this.tableName = tableName;
     }
@@ -81,17 +83,7 @@ public class RowMappersTableJoin implements RowMapper<Map> {
                 setDateTimeMethods(rs, map, cl, field, columnName);
             }
         }
-
-        Connection conn = getJdbcTemplate.getDataSource().getConnection();
-
-        String tableName2 = "[item_" + tableName.substring(1, tableName.length());
-
-        String sql = "select top 1 * from " + tableName2;
-
-        PreparedStatement prep = conn.prepareStatement(sql);
-        ResultSetMetaData rsmd = prep.getMetaData();
-        
-        
+        /*
         int size = rsmd.getColumnCount();//共有多少列  
         colNames = new String[size];
         colType = new String[size];
@@ -130,8 +122,31 @@ public class RowMappersTableJoin implements RowMapper<Map> {
             } 
 
         }
+         */
+        
+        Iterator<String> iterator=columnList.iterator();
+        
+        while (iterator.hasNext()) {
+        	
+        	String setMethodName=iterator.next();
+        	
+        	try {
 
-        conn.close();
+                String aa = rs.getString(setMethodName);
+                //  	 SystemConstant.out.println("aa="+aa);
+                map.put(setMethodName, aa);
+            } catch (SecurityException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IllegalArgumentException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (SQLException e) {  // ResultSet的异常
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } 
+			
+		}
         
         return map;
     }

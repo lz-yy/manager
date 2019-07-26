@@ -1,10 +1,13 @@
 package com.voucher.manage.daoImpl;
 
 import cn.hutool.core.util.IdUtil;
+
 import com.alibaba.fastjson.JSONArray;
 import com.voucher.manage.dao.CurrentDao;
 import com.voucher.manage.daoModel.Room;
 import com.voucher.manage.daoModel.Table_alias;
+import com.voucher.manage.daoModel.TTT.ChartInfo;
+import com.voucher.manage.daoRowMapper.RowMappers;
 import com.voucher.manage.daoRowMapper.RowMappersTableJoin;
 import com.voucher.manage.daoRowMapper.RowMappersTableJoin2;
 import com.voucher.manage.daoSQL.*;
@@ -12,6 +15,7 @@ import com.voucher.manage.daoSQL.annotations.DBTable;
 import com.voucher.manage.tools.Md5;
 import com.voucher.manage.tools.MyTestUtil;
 import com.voucher.manage2.exception.BaseException;
+import com.voucher.manage2.redis.JedisUtil1;
 import com.voucher.manage2.tkmapper.entity.SysUserCondition;
 import com.voucher.manage2.tkmapper.mapper.SysUserConditionMapper;
 import com.voucher.manage2.utils.CommonUtils;
@@ -19,6 +23,7 @@ import com.voucher.manage2.utils.ObjectUtils;
 import com.voucher.manage2.aop.interceptor.annotation.TimeConsume;
 import com.voucher.manage2.constant.ResultConstant;
 import com.voucher.manage2.constant.RoomConstant;
+import com.voucher.manage2.dto.SysUserDTO;
 import com.voucher.manage2.tkmapper.entity.Select;
 import com.voucher.manage2.tkmapper.entity.TableAlias;
 import com.voucher.manage2.tkmapper.mapper.SelectMapper;
@@ -34,6 +39,10 @@ import tk.mybatis.mapper.entity.Example;
 import tk.mybatis.mapper.weekend.Weekend;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -113,6 +122,16 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
         }
 
+        String key="["+tableName+"]_columnName";
+        
+        JedisUtil1.deleteData(key);
+        
+        key="["+tableName.replaceAll("item_","")+"]_alias";
+        
+        JedisUtil1.deleteData(key);
+        
+        System.out.print("key=========="+key);
+        
         return this.getJdbcTemplate().update(sql) == 1 ? ResultConstant.SUCCESS : ResultConstant.FAILED;
     }
 
@@ -126,12 +145,13 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
     @Override
     @TimeConsume
-    public Map selectTable(Object object, String joinParameter) throws ClassNotFoundException {
+    public Map selectTable(Object object, String joinParameter) throws ClassNotFoundException, SQLException {
         // TODO Auto-generated method stub
 
         Map hMap = NewSelectSqlJoin.get(object, joinParameter);
 
         String sql = (String) hMap.get("sql");
+        System.out.print("sql========"+sql);
         List params = (List) hMap.get("params");
 
         Map hMap2 = NewSelectSqlJoin.getCount(object, joinParameter);
@@ -146,57 +166,107 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
         String tableName = (dbTable.name().length() < 1) ? cl.getName() : dbTable.name();//获取表的名字，如果没有在DBTable中定义，则获取类名作为Table的名字
 
-        int exist = existTable("item_" + tableName.substring(1, tableName.length() - 1));
+        String company="";
+        
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        if(currentUser!=null){
+        	company=currentUser.getCompanyGuid();
+        }
+        
+        int exist = existTable("item_" + tableName.substring(1, tableName.length() - 1)+company);
 
         if (exist < 1) {
 
-            String tableName2 = "[item_" + tableName.substring(1);
+            String tableName2 = "[item_" + tableName.substring(1, tableName.length() - 1)+company+"]";
 
             createTable(tableName2, joinParameter);
         }
+        
+        String tableName2 = "[item_" + tableName.substring(1, tableName.length() - 1)+company+"]";
+        
+        String key=tableName2+"_columnName";
+        
+        List<String> columnList=new ArrayList<String>();
+        
+        if(JedisUtil1.exists(key)){
+        
+			columnList = JedisUtil1.getObject(key);
+			System.out.print("rsmd y");
+		} else {
+			
+			Connection conn = this.getJdbcTemplate().getDataSource().getConnection();
+
+			String sqltable = "select top 0 * from " + tableName2;
+
+			PreparedStatement prep = conn.prepareStatement(sqltable);
+
+			ResultSetMetaData rsmd = prep.getMetaData();
+
+			System.out.print("rsmd==============");
+			/*
+			int size = rsmd.getColumnCount();//共有多少列  
+	        String[] colNames = new String[size];
+	        String[] colType = new String[size];
+	        int[] colSize = new int[size];
+			*/
+			for (int i = 1; i < rsmd.getColumnCount(); i++) {
+	          //  colNames[i] = rsmd.getColumnName(i + 1);
+	          //  colType[i] = rsmd.getColumnTypeName(i + 1);
+	          //  colSize[i] = rsmd.getColumnDisplaySize(i + 1);
+
+	            String setMethodName = rsmd.getColumnName(i + 1);
+			
+	            columnList.add(setMethodName);
+			}
+			
+			JedisUtil1.setObject(key, columnList);
+			System.out.print("rsmd not");
+			conn.close();
+		}
+        
+        System.out.print("implparams=======");
+        
+        MyTestUtil.print(params);
+        System.out.print("=========================");
         //表格数据
-        List<Map> list = this.getJdbcTemplate().query(sql, params.toArray(), new RowMappersTableJoin(getJdbcTemplate(), className, tableName));
+        List<Map> list = this.getJdbcTemplate().query(sql, params.toArray(), new RowMappersTableJoin(columnList, className, tableName));
 
         int total = (int) this.getJdbcTemplate().queryForMap(sql2, params2.toArray()).get("");
 
-        Table_alias table_alias = new Table_alias();
-        table_alias.setLimit(1000);
-        table_alias.setOffset(0);
-        table_alias.setNotIn("id");
-        table_alias.setWhereTerm("or");
-        String[] where = {"table_name=", tableName.substring(1, tableName.length() - 1),
-                "table_name=", "item_" + tableName.substring(1, tableName.length() - 1)};
-        table_alias.setWhere(where);
+        String key2=tableName+"_alias"+company;
+        
+        List<Table_alias> aliasList;
+        
+		if (JedisUtil1.exists(key2)) {
 
-        tableName = tableName.substring(1, tableName.length() - 1);
+			aliasList = JedisUtil1.getObject(key2);
 
-        //String[] where = {"table_name=", tableName};
+		} else {
 
-        System.out.println(tableName);
+			Table_alias table_alias = new Table_alias();
+			table_alias.setLimit(1000);
+			table_alias.setOffset(0);
+			table_alias.setNotIn("id");
+			table_alias.setWhereTerm("or");
+			String[] where = { "table_name=", tableName.substring(1, tableName.length() - 1), "table_name=",
+					"item_" + tableName.substring(1, tableName.length() - 1)+company };
+			table_alias.setWhere(where);
 
-        //table_alias.setWhere(where);
-        //表头信息
-        List<Table_alias> aliasList = SelectExe.get(this.getJdbcTemplate(), table_alias);
+			tableName = tableName.substring(1, tableName.length() - 1);
+
+			System.out.println(tableName);
+
+			// 表头信息
+			aliasList = SelectExe.get(this.getJdbcTemplate(), table_alias);
+			
+			JedisUtil1.setObject(key2, aliasList);
+		}
 
         List<Map<String, Object>> fixedTitleList = new ArrayList<>();
         List<Map<String, Object>> dynTitleList = new ArrayList<>();
 
         Map<String, Map<Integer, String>> domains = getSelectMap();
-
-        List<Map<String, Object>> dynLineInfoList = null;
-        try {
-            dynLineInfoList = tableAliasMapper.getDynLineInfo();
-        } catch (Exception e) {
-            // TODO: handle exception
-            //e.printStackTrace();
-        }
-        Map<String, Object> dynLineInfoMap = null;
-        if (ObjectUtils.isNotEmpty(dynLineInfoList)) {
-            dynLineInfoMap = new HashMap<>();
-            for (Map<String, Object> map : dynLineInfoList) {
-                dynLineInfoMap.put(MapUtils.getString("line_uuid", map), map.get("max_length"));
-            }
-        }
 
         String REGEX = "item_";
         Pattern pattern = Pattern.compile(REGEX);
@@ -217,17 +287,7 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
             if (!matcher.find()) {
                 fixedTitleList.add(dynTitleMap);
             } else {
-                //动态列
-                try {
-                    Object text_length = dynLineInfoMap.get(line_uuid);
-                    if (ObjectUtils.isNotEmpty(text_length)) {
-                        dynTitleMap.put("text_length", text_length);
-                    }
-
-                    dynTitleList.add(dynTitleMap);
-                } catch (Exception e) {
-                    // TODO: handle exception
-                }
+            	 dynTitleList.add(dynTitleMap);
             }
 
         }
@@ -265,7 +325,7 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
     }
 
     @Override
-    public Map selectTable(Object[] objects, String[][] joinParameters, String[] itemjoinParameters) throws ClassNotFoundException {
+    public Map selectTable(Object[] objects, String[][] joinParameters, String[] itemjoinParameters) throws ClassNotFoundException, SQLException {
         // TODO Auto-generated method stub
 
         Map hMap = NewSelectSqlJoin2.get(objects, joinParameters, itemjoinParameters);
@@ -285,6 +345,8 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
         List<String> tableNames = new ArrayList<>();
 
+        boolean isCache=true;
+        
         int s = 0;
         for (Object object : objects) {
 
@@ -317,24 +379,52 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
             }
 
-            Table_alias table_alias = new Table_alias();
-            table_alias.setLimit(1000);
-            table_alias.setOffset(0);
-            table_alias.setNotIn("id");
-            String[] where = {"table_name=", tableName.substring(1, tableName.length() - 1),
-                    "table_name=", "item_" + tableName.substring(1, tableName.length() - 1)};
-            table_alias.setWhere(where);
+            String tableName2 = "[item_" + tableName.substring(1);
+            
+            String key=tableName2+"_columnName";
+            
+            String key2=tableName+"_alias";
+            
+            System.out.println("isCache="+isCache);
+            
+            if(isCache&&!JedisUtil1.exists(key)){
+            	isCache=false;
+            }
+            
+            System.out.println("key====="+key);
+            System.out.println("key2====="+key2);
+            
+            List<Table_alias> aliasList=new ArrayList<Table_alias>();
+            
+			if (JedisUtil1.exists(key2)) {
+				aliasList = JedisUtil1.getObject(key2);
+				System.out.println("aliasList y ========= "+key2);
+				MyTestUtil.print(aliasList);
+			} else {
+				Table_alias table_alias = new Table_alias();
+				table_alias.setLimit(1000);
+				table_alias.setOffset(0);
+				table_alias.setNotIn("id");
+				table_alias.setWhereTerm("or");
+				String[] where = { "table_name=", tableName.substring(1, tableName.length() - 1), "table_name=",
+						"item_" + tableName.substring(1, tableName.length() - 1) };
+				table_alias.setWhere(where);
 
-            tableName = tableName.substring(1, tableName.length() - 1);
+				tableName = tableName.substring(1, tableName.length() - 1);
 
-            // String[] where = {"table_name=", tableName};
+				System.out.println("tableName===="+tableName);
 
-            System.out.println(tableName);
+			    table_alias.setWhere(where);
+				// 表头信息
+				aliasList = SelectExe.get(this.getJdbcTemplate(), table_alias);
+				System.out.print("aliasList object==========");
+				MyTestUtil.print(aliasList);
+				JedisUtil1.setObject(key2, aliasList);
+				
+				System.out.println("aliasList not ======="+key2);
 
-            // table_alias.setWhere(where);
-            // 表头信息
-            List<Table_alias> aliasList = SelectExe.get(this.getJdbcTemplate(), table_alias);
-
+			}
+            
             // 下拉信息
             //List<Select> selects = new ArrayList<>();
             //try {
@@ -389,17 +479,75 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
                 }
 
             }
-            MyTestUtil.print(aliasList);
-
+            
         }
 
         Class[] classNames_ = new Class[classNames.size()];
         String[] tableName_ = new String[tableNames.size()];
 
+        List<String> columnList=new ArrayList<String>();
+        
+		if (isCache) {
+
+			System.out.println("isCache======"+isCache);
+			
+			for (String tableName : tableNames) {
+
+				String tableName2 = "[item_" + tableName.substring(1, tableName.length());
+				
+				String key=tableName2+"_columnName";
+				
+				List<String> currentColumnList=JedisUtil1.getObject(key);
+				
+				columnList.addAll(currentColumnList);
+				
+				MyTestUtil.print(currentColumnList);
+			}
+			
+			MyTestUtil.print(columnList);
+			
+		} else {
+
+			Connection conn = this.getJdbcTemplate().getDataSource().getConnection();
+
+			for (String tableName : tableNames) {
+
+				String tableName2 = "[item_" + tableName.substring(1, tableName.length());
+
+				String sqltable = "select top 0 * from " + tableName2;
+
+				PreparedStatement prep = conn.prepareStatement(sqltable);
+				ResultSetMetaData rsmd = prep.getMetaData();
+
+				List<String> currentColumnList=new ArrayList<String>();
+				
+				for (int i = 1; i < rsmd.getColumnCount(); i++) {
+
+					String setMethodName = rsmd.getColumnName(i + 1);
+
+					columnList.add(setMethodName);
+					
+					currentColumnList.add(setMethodName);
+				}
+				
+				String key=tableName2+"_columnName";
+				
+				JedisUtil1.setObject(key, currentColumnList);
+
+				System.out.println("isCache======"+isCache);
+				
+			}
+
+			conn.close();
+
+		}
+		System.out.print("params========"); 
+		 MyTestUtil.print(params);
+	        System.out.print("=========================");  
         // 表格数据
         List<Map> list = this.getJdbcTemplate().query(sql, params.toArray(),
-                new RowMappersTableJoin2(getJdbcTemplate(), classNames.toArray(classNames_), tableNames.toArray(tableName_)));
-
+                new RowMappersTableJoin2(columnList, classNames.toArray(classNames_), tableNames.toArray(tableName_)));
+        	//	new RowMappers(ChartInfo.class));
         int total = (int) this.getJdbcTemplate().queryForMap(sql2, params2.toArray()).get("");
 
         Map map = new HashMap<>();
@@ -462,10 +610,16 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
         String sql = " insert into " + tableName2 + " (" + fields + ") " +
                 " values (" + values + ")";
 
-        result = this.getJdbcTemplate().update(sql, params.toArray());
+     //   result = this.getJdbcTemplate().update(sql, params.toArray());
 
-        result = InsertExe.get(this.getJdbcTemplate(), object);
+     //   result = InsertExe.get(this.getJdbcTemplate(), object);
 
+        String key=tableName2+"_columnName";
+        
+        JedisUtil1.deleteData(key);
+        
+        System.out.print("key=========="+key);
+        
         return result;
 
     }
@@ -500,7 +654,18 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
             throw BaseException.getDefault();
         }
         StringBuffer sqlBuf = new StringBuffer(100);
-        sqlBuf.append("update item_room set ");
+        
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        String company="";
+        
+        if(currentUser!=null){
+        	company=currentUser.getCompanyGuid();
+        }
+                
+        String tableName="item_room"+company;
+        
+        sqlBuf.append("update "+tableName+" set ");
         boolean isnotempty = false;
         roomMap.forEach((k, v) -> {
             if (k.startsWith("item") && ObjectUtils.isNotEmpty(k, v)) {
@@ -641,6 +806,25 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
         //int i = 1 / 0;
         //update = this.getJdbcTemplate().update(sql);
         //SystemConstant.out.println(update);
+        
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        String company="";
+        
+        if(currentUser!=null){
+        	company=currentUser.getCompanyGuid();
+        }
+        
+        String key="["+tableName+"]_columnName";
+        
+        JedisUtil1.deleteData(key);
+        
+        key="["+tableName.replaceAll("item_","")+company+"]_alias";
+        
+        JedisUtil1.deleteData(key);
+        
+        System.out.print("key=========="+key);
+        
         return this.getJdbcTemplate().update(sql) == 0 ? ResultConstant.SUCCESS : ResultConstant.FAILED;
     }
 

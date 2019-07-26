@@ -7,14 +7,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>manager Maven Webapp</name>
     <url>http://maven.apache.org</url>
-    <repositories>
-        <repository>
-            <id>jacob</id>
-            <url>https://mvnrepository.com/artifact/</url>
-        </repository>
-    </repositories>
-    <dependencies>
 
+    <dependencies>
         <!-- Mybatis的分页助手 -->
         <dependency>
             <groupId>com.github.pagehelper</groupId>
@@ -401,11 +395,13 @@
             <version>1.46</version>
         </dependency>
         <!-- 这个包自己打包在本地仓库 -->
-        <dependency>
-            <groupId>com.aspose.words</groupId>
-            <artifactId>aspose-words-jdk16</artifactId>
-            <version>14.6.0.0</version>
-        </dependency>
+	<!-- https://mvnrepository.com/artifact/com.aspose/aspose-words -->
+	<dependency>
+		<groupId>com.aspose</groupId>
+		<artifactId>aspose-words</artifactId>
+		 <version>19.6</version>
+	</dependency>
+
 
     </dependencies>
 
@@ -432,25 +428,6 @@
                     <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.zeroturnaround</groupId>
-                <artifactId>jrebel-maven-plugin</artifactId>
-                <version>1.1.5</version>
-                <configuration>
-                    <addResourcesDirToRebelXml>true</addResourcesDirToRebelXml>
-                    <alwaysGenerate>true</alwaysGenerate>
-                    <showGenerated>true</showGenerated>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>generate-rebel-xml</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>

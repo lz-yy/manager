@@ -25,6 +25,8 @@ import com.voucher.manage.daoSQL.annotations.SQLInteger;
 import com.voucher.manage.daoSQL.annotations.SQLLong;
 import com.voucher.manage.daoSQL.annotations.SQLString;
 import com.voucher.manage.tools.MyTestUtil;
+import com.voucher.manage2.dto.SysUserDTO;
+import com.voucher.manage2.utils.CommonUtils;
 
 public class NewSelectSqlJoin {
 	
@@ -191,7 +193,15 @@ public class NewSelectSqlJoin {
         }
         */
 
-       String tableName2="[item_"+tableName.substring(1, tableName.length());
+        String company="";
+        
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        if(currentUser!=null){
+        	company=currentUser.getCompanyGuid();
+        }
+        
+       String tableName2="[item_"+tableName.substring(1, tableName.length()-1)+company+"]";
        
        leftJionTableName=leftJionTableName+" left join "+tableName2+" on " +defaultTable+"."+joinParameter
           		  +"="+tableName2+"."+joinParameter;
@@ -215,6 +225,7 @@ public class NewSelectSqlJoin {
       if(term){
           StringBuilder whereCommand = new StringBuilder();         
           Iterator<String[]> iterator=wheres.iterator();
+          System.out.print("wheres========");
           MyTestUtil.print(wheres);
          
         	  columnWhere=iterator.next();
@@ -236,7 +247,7 @@ public class NewSelectSqlJoin {
               }
 		  */
 
-  			int ii=0;
+  			int ii=-1;
   			boolean aTerm=false;
   			boolean bTerm=false;
   			boolean cTerm=false;
@@ -253,12 +264,19 @@ public class NewSelectSqlJoin {
   			
   			for(String str : columnWhere){
 
-  				System.out.println("str="+str);
-
+  				ii++;
+  				
+  				System.out.println("str========"+str);
+  				String str2=str.replace(" ", "");
+  				System.out.println("str2========"+str);
+  				System.out.println("params2========");
+  				System.out.println("ii========"+ii);
+  				MyTestUtil.print(params2);
+  				
   				String REGEX = "del=";
   				Pattern pattern=Pattern.compile(REGEX);
-  				Matcher matcher=pattern.matcher(str);
-  				if(matcher.find()){
+  				Matcher matcher=pattern.matcher(str2);
+  				if(matcher.find()&&!aTerm){
   					awhere=" "+str+" ";
   					aTerm=true;
   					temporary.add(columnWhere[ii]);
@@ -273,11 +291,11 @@ public class NewSelectSqlJoin {
   			    	continue;
   				}
 	
-  				String REGEX1 = "region=";
+  				String REGEX1 = "company_guid=";
   				Pattern pattern1=Pattern.compile(REGEX1);
-  				Matcher matcher1=pattern1.matcher(str);				
+  				Matcher matcher1=pattern1.matcher(str2);				
 
-  				if(matcher1.find()){
+  				if(matcher1.find()&&!bTerm){
   					bwhere=" "+str+" ";
   					bTerm=true;
   					temporary.add(columnWhere[ii]);
@@ -294,9 +312,9 @@ public class NewSelectSqlJoin {
   				
   				String REGEX2 = "weight=";
   				Pattern pattern2=Pattern.compile(REGEX2);
-  				Matcher matcher2=pattern2.matcher(str);				
+  				Matcher matcher2=pattern2.matcher(str2);				
 
-  				if(matcher2.find()){
+  				if(matcher2.find()&&!cTerm){
   					cwhere=" "+str+" ";
   					cTerm=true;
   					temporary.add(columnWhere[ii]);
@@ -317,7 +335,7 @@ public class NewSelectSqlJoin {
   			    	whereCommand.append(" ? ");
   			    	whereCommand.append(" "+Term+" ");
   			    }
-  			    ii++;
+  			    
   			}
   			String ss = whereCommand.toString();
 
@@ -388,104 +406,129 @@ public class NewSelectSqlJoin {
           }
           iterator=wheres.iterator();
           
-          System.out.println("wheres1=");
-          MyTestUtil.print(wheres);
+          System.out.println("temporary=");
+          MyTestUtil.print(temporary);
           
           int k2;
         
         	columnWhere=iterator.next();
-        	System.out.println("length="+length);
+        	System.out.println("columnWhere1======");
+        	MyTestUtil.print(columnWhere);
 			for (k2 = 1; k2 < length; k2++) {
+				String first=null;
 				String last = null;
-				for (String whereterm : columnWhere) {
-					boolean b = true;
+				boolean b = true;
+				for (String whereterm : columnWhere) {					
+					try{
+						if(temporary.size()>0)
+							first=temporary.get(0);
+					}catch (Exception e) {
+						// TODO: handle exception
+					}
 					for (String t : temporary) {
-						if (t.equals(last)) {
-							last = null;
-							b = false;
-						} else {
-							b = true;
+						if(b==true){
+						System.out.println("i="+i);
+						System.out.println("t="+t);
+						System.out.println("whereterm="+whereterm);
 						}
+						if (i % 2 != 0) {
+							if (t.equals(whereterm)) {
+								last = null;
+								b = false;
+								break;
+							} else {
+								b = true;
+							}
+						} else {
+							break;
+						}
+						
 						if (whereterm.equals(t)) {
 							last = whereterm;
 						}
 					}
-
+					System.out.println("b="+b);
 					if (b) {
 						if (i % 2 == 0) {
 							params.add(whereterm);
-							last = null;
+							b=false;
 						} else {
 							// SystemConstant.out.println("奇数");
 						}
 					}
+					System.out.println("++++++===========");
 					i++;
 				}
 			}
          
-			 Iterator iterator2=params2.iterator();
+			params.addAll(params2);
 			
-			int p1=0;
+			System.out.print("params1111=");
+			MyTestUtil.print(params);
 			
-			while(iterator2.hasNext()){
-				if (p1 % 2 == 0) {
-					params.add(iterator2.next());
-				} else {
-					// SystemConstant.out.println("奇数");
-				}
-			}
-          
+						
           select=select+"\n  AND ("+serach+")";
-       //   SystemConstant.out.println("select="+select);
           i=1;
           iterator=wheres.iterator();
           System.out.println("wheres2="+wheres);
-          
+        
           int k3;
           
-			columnWhere = iterator.next();
-			System.out.println("length=" + length);
+          columnWhere=iterator.next();
+      	System.out.println("length="+length);
 			for (k3 = 1; k3 < length; k3++) {
+				String first=null;
 				String last = null;
-				for (String whereterm : columnWhere) {
-					boolean b = true;
+				boolean b = true;
+				for (String whereterm : columnWhere) {					
+					try{
+						if(temporary.size()>0)
+							first=temporary.get(0);
+					}catch (Exception e) {
+						// TODO: handle exception
+					}
 					for (String t : temporary) {
-						if (t.equals(last)) {
-							last = null;
-							b = false;
-						} else {
-							b = true;
+						if(b==true){
+						System.out.println("i="+i);
+						System.out.println("t="+t);
+						System.out.println("whereterm="+whereterm);
 						}
+						if (i % 2 != 0) {
+							if (t.equals(whereterm)) {
+								last = null;
+								b = false;
+								break;
+							} else {
+								b = true;
+							}
+						} else {
+							break;
+						}
+						
 						if (whereterm.equals(t)) {
 							last = whereterm;
 						}
 					}
-
+					System.out.println("b="+b);
 					if (b) {
 						if (i % 2 == 0) {
 							params.add(whereterm);
-							last = null;
+							b=false;
 						} else {
 							// SystemConstant.out.println("奇数");
 						}
 					}
+					System.out.println("++++++===========");
 					i++;
 				}
 			}
          
-			iterator2=params2.iterator();
+			params.addAll(params2);
 			
-			int p2=0;
-			
-			while(iterator2.hasNext()){
-				if (p2 % 2 == 0) {
-					params.add(iterator2.next());
-				} else {
-					// SystemConstant.out.println("奇数");
-				}
-			}
-          
-			System.out.println("params=====");
+			System.out.print("params222=");
+			MyTestUtil.print(params);			
+			          
+			System.out.println("currentparams=====");
 			MyTestUtil.print(params);
 			MyTestUtil.print(params2);
 			
@@ -641,7 +684,7 @@ public class NewSelectSqlJoin {
 		              }
 		              */
 
-		        	  int ii=0;
+		        	  int ii=-1;
 		    			boolean aTerm=false;
 		    			boolean bTerm=false;
 		    			boolean cTerm=false;
@@ -650,80 +693,84 @@ public class NewSelectSqlJoin {
 		    			String cwhere=null;
 
 		    			List<String> condition=new ArrayList<>();
-		    			
-		    			System.out.println("columnWhere="+columnWhere);
-		    			MyTestUtil.print(columnWhere);
-		    			
+			    			
 		    			List<String> temporary=new ArrayList<>();
 		    			
-		    			for(String str : columnWhere){
+		      			for(String str : columnWhere){
 
-		    				System.out.println("str="+str);
+		      				ii++;
+		      				
+		      				System.out.println("str========"+str);
+		      				String str2=str.replace(" ", "");
+		      				System.out.println("str2========"+str);
+		      				System.out.println("params2========");
+		      				System.out.println("ii========"+ii);
+		      				MyTestUtil.print(params2);
+		      				
+		      				String REGEX = "del=";
+		      				Pattern pattern=Pattern.compile(REGEX);
+		      				Matcher matcher=pattern.matcher(str2);
+		      				if(matcher.find()&&!aTerm){
+		      					awhere=" "+str+" ";
+		      					aTerm=true;
+		      					temporary.add(columnWhere[ii]);
+		    			    	params2.add(columnWhere[ii+1]);
+		      					continue;
+		      				}
 
-		    				String REGEX = "del=";
-		    				Pattern pattern=Pattern.compile(REGEX);
-		    				Matcher matcher=pattern.matcher(str);
-		    				if(matcher.find()){
-		    					awhere=" "+str+" ";
-		    					aTerm=true;
-		    					temporary.add(columnWhere[ii]);
-		  			    	params2.add(columnWhere[ii+1]);
-		    					continue;
-		    				}
+		      				if(aTerm){
+		      					awhere=awhere+" ? ";
+		      			    	aTerm=false;
+		      			    	condition.add(awhere);
+		      			    	continue;
+		      				}
+		    	
+		      				String REGEX1 = "company_guid=";
+		      				Pattern pattern1=Pattern.compile(REGEX1);
+		      				Matcher matcher1=pattern1.matcher(str2);				
 
-		    				if(aTerm){
-		    					awhere=awhere+" ? ";
-		    			    	aTerm=false;
-		    			    	condition.add(awhere);
-		    			    	continue;
-		    				}
-		  	
-		    				String REGEX1 = "region=";
-		    				Pattern pattern1=Pattern.compile(REGEX1);
-		    				Matcher matcher1=pattern1.matcher(str);				
+		      				if(matcher1.find()&&!bTerm){
+		      					bwhere=" "+str+" ";
+		      					bTerm=true;
+		      					temporary.add(columnWhere[ii]);
+		      					params2.add(columnWhere[ii+1]);
+		      					continue;
+		      				}
 
-		    				if(matcher1.find()){
-		    					bwhere=" "+str+" ";
-		    					bTerm=true;
-		    					temporary.add(columnWhere[ii]);
-		    					params2.add(columnWhere[ii+1]);
-		    					continue;
-		    				}
+		      				if(bTerm){
+		      					bwhere=bwhere+" ? ";
+		      			    	bTerm=false;
+		      			    	condition.add(bwhere);
+		      			    	continue;
+		      				}
+		      				
+		      				String REGEX2 = "weight=";
+		      				Pattern pattern2=Pattern.compile(REGEX2);
+		      				Matcher matcher2=pattern2.matcher(str2);				
 
-		    				if(bTerm){
-		    					bwhere=bwhere+" ? ";
-		    			    	bTerm=false;
-		    			    	condition.add(bwhere);
-		    			    	continue;
-		    				}
-		    				
-		    				String REGEX2 = "weight=";
-		    				Pattern pattern2=Pattern.compile(REGEX2);
-		    				Matcher matcher2=pattern2.matcher(str);				
+		      				if(matcher2.find()&&!cTerm){
+		      					cwhere=" "+str+" ";
+		      					cTerm=true;
+		      					temporary.add(columnWhere[ii]);
+		      					params2.add(columnWhere[ii+1]);
+		      					continue;
+		      				}
 
-		    				if(matcher2.find()){
-		    					cwhere=" "+str+" ";
-		    					cTerm=true;
-		    					temporary.add(columnWhere[ii]);
-		    					params2.add(columnWhere[ii+1]);
-		    					continue;
-		    				}
+		      				if(cTerm){
+		      					cwhere=cwhere+" ? ";
+		      			    	cTerm=false;
+		      			    	condition.add(cwhere);
+		      			    	continue;
+		      				}
 
-		    				if(cTerm){
-		    					cwhere=cwhere+" ? ";
-		    			    	cTerm=false;
-		    			    	condition.add(cwhere);
-		    			    	continue;
-		    				}
-
-		    			    if(ii%2==0){
-		    			    	whereCommand.append(str);
-		    			    }else{
-		    			    	whereCommand.append(" ? ");
-		    			    	whereCommand.append(" "+Term+" ");
-		    			    }
-		    			    ii++;
-		    			}
+		      			    if(ii%2==0){
+		      			    	whereCommand.append(str);
+		      			    }else{
+		      			    	whereCommand.append(" ? ");
+		      			    	whereCommand.append(" "+Term+" ");
+		      			    }
+		      			    
+		      			}
 		    			String ss = whereCommand.toString();
 
 		    			String serach = null;
@@ -772,51 +819,65 @@ public class NewSelectSqlJoin {
 		          
 		       iterator=wheres.iterator();
 		       
-		       int k2=1;
-
-	       	columnWhere=iterator.next();
-	       	String last=null;
-	       	
-					for (String whereterm : columnWhere) {
-
-						boolean b = true;
+		       i=1;
+		       
+		       int k2;
+		        int length=2;
+	        	columnWhere=iterator.next();
+	        	System.out.println("columnWhere======");
+	        	MyTestUtil.print(columnWhere);
+				for (k2 = 1; k2 < length; k2++) {
+					String first=null;
+					String last = null;
+					boolean b = true;
+					for (String whereterm : columnWhere) {					
+						try{
+							if(temporary.size()>0)
+								first=temporary.get(0);
+						}catch (Exception e) {
+							// TODO: handle exception
+						}
 						for (String t : temporary) {
-							if (t.equals(last)) {
-								last = null;
-								b = false;
-							} else {
-								b = true;
+							if(b==true){
+							System.out.println("i="+i);
+							System.out.println("t="+t);
+							System.out.println("whereterm="+whereterm);
 							}
+							if (i % 2 != 0) {
+								if (t.equals(whereterm)) {
+									last = null;
+									b = false;
+									break;
+								} else {
+									b = true;
+								}
+							} else {
+								break;
+							}
+							
 							if (whereterm.equals(t)) {
 								last = whereterm;
 							}
 						}
-
+						System.out.println("b="+b);
 						if (b) {
-							if (k2% 2 == 0) {
+							if (i % 2 == 0) {
 								params.add(whereterm);
-								last = null;
+								b=false;
 							} else {
 								// SystemConstant.out.println("奇数");
 							}
 						}
-						k2++;
-					}
-			
-	        
-				 Iterator iterator2=params2.iterator();
-				
-				int p1=0;
-				
-				while(iterator2.hasNext()){
-					if (p1 % 2 == 0) {
-						params.add(iterator2.next());
-					} else {
-						// SystemConstant.out.println("奇数");
+						System.out.println("++++++===========");
+						i++;
 					}
 				}
+	         
+	         
+				params.addAll(params2);
+			
 	 
-				System.out.println("params=====");
+				System.out.println("countparams=====");
 				MyTestUtil.print(params);
 				MyTestUtil.print(params2);
 		          

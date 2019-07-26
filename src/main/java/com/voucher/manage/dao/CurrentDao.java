@@ -3,6 +3,7 @@ package com.voucher.manage.dao;
 import com.voucher.manage2.tkmapper.entity.Select;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -14,11 +15,11 @@ public interface CurrentDao {
 
     Integer existTable(String tableName);
 
-    Map selectTable(Object object, String joinParameter) throws ClassNotFoundException;
+    Map selectTable(Object object, String joinParameter) throws ClassNotFoundException, SQLException;
 
     Map<String, Map<Integer, String>> getSelectMap();
 
-    Map selectTable(Object[] objects, String[][] joinParameters, String[] itemjoinParameters) throws ClassNotFoundException;
+    Map selectTable(Object[] objects, String[][] joinParameters, String[] itemjoinParameters) throws ClassNotFoundException, SQLException;
 
     Integer insertTable(Object object, String val) throws ClassNotFoundException;
 

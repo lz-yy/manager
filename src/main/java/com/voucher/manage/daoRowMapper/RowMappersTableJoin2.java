@@ -9,11 +9,14 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class RowMappersTableJoin2 implements RowMapper<Map> {
 
-    JdbcTemplate getJdbcTemplate;
+    //JdbcTemplate getJdbcTemplate;
+	List<String> columnList;
     Class<?>[] classNames;
     String[] tableNames;
 
@@ -24,9 +27,10 @@ public class RowMappersTableJoin2 implements RowMapper<Map> {
     private boolean f_Clob = false;//是否需要导入java.sql.*  
     private boolean f_Blob = false;//是否需要导入java.sql.* 
 
-    public RowMappersTableJoin2(JdbcTemplate getJdbcTemplate, Class<?>[] classNames, String[] tableNames) {
+    public RowMappersTableJoin2(List<String> columnList,Class<?>[] classNames, String[] tableNames) {
         // TODO Auto-generated constructor stub
-        this.getJdbcTemplate = getJdbcTemplate;
+        //this.getJdbcTemplate = getJdbcTemplate;
+    	this.columnList=columnList;
         this.classNames = classNames;
         this.tableNames = tableNames;
     }
@@ -99,6 +103,7 @@ public class RowMappersTableJoin2 implements RowMapper<Map> {
             }
         }
 
+        /*
         Connection conn = getJdbcTemplate.getDataSource().getConnection();
 
 		for (String tableName : tableNames) {
@@ -152,9 +157,33 @@ public class RowMappersTableJoin2 implements RowMapper<Map> {
 		  }
 		
 		  conn.close();
-		  
+		  */
         }
         
+        
+        Iterator<String> iterator=columnList.iterator();
+        
+        while (iterator.hasNext()) {
+        	
+        	String setMethodName=iterator.next();
+        	
+        	try {
+
+                String aa = rs.getString(setMethodName);
+                //  	 SystemConstant.out.println("aa="+aa);
+                map.put(setMethodName, aa);
+            } catch (SecurityException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (IllegalArgumentException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch (SQLException e) {  // ResultSet的异常
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } 
+			
+		}
 
         return map;
     }

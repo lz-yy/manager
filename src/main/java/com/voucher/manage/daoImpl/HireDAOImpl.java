@@ -73,6 +73,10 @@ public class HireDAOImpl extends JdbcDaoSupport implements HireDAO {
 
         Iterator<ChartRoom> iteratorCrooms = chartRooms.iterator();
 
+        if(chartRooms.size()<1){
+        	return -2;
+        }
+        
         while (iteratorCrooms.hasNext()) {
 
             ChartRoom chartRoom = iteratorCrooms.next();
@@ -122,44 +126,51 @@ public class HireDAOImpl extends JdbcDaoSupport implements HireDAO {
 
             System.out.println("getBuild_area=" + room2.getBuild_area() + " ready= " + already + " chart= " + chartRoom.getChartArea());
             System.out.println(chartRoom.getChartArea());
-            //if ((room2.getBuild_area() - already - chartRoom.getChartArea()) >= 0&&chartRoom.getChartArea()>0) {
 
-            i = InsertExe.get(this.getJdbcTemplate(), chartRoom);
+			if ((room2.getBuild_area() - already - chartRoom.getChartArea()) >= 0 && chartRoom.getChartArea() > 0) {
 
-            if (i < 1) {
-                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            }
+				i = InsertExe.get(this.getJdbcTemplate(), chartRoom);
 
-            if (room2.getBuild_area() - chartRoom.getChartArea() >= 0) {
+				if (i < 1) {
+					TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+				}
 
                 room.setState(RoomConstant.RENTED);
 
-                i = UpdateExe.get(this.getJdbcTemplate(), room);
+				if (room2.getBuild_area() - chartRoom.getChartArea() >= 0) {
 
-                if (i < 1) {
-                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-                }
+					room.setState(0);
 
-            } else if (room2.getBuild_area() - chartRoom.getChartArea() <= 0) {
+					i = UpdateExe.get(this.getJdbcTemplate(), room);
+
+					if (i < 1) {
+						TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+					}
+
 
                 room.setState(RoomConstant.RENT_AVAILABLE);
 
-                i = UpdateExe.get(this.getJdbcTemplate(), room);
+				} else if (room2.getBuild_area() - chartRoom.getChartArea() <= 0) {
 
-                if (i < 1) {
-                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-                }
-            }
 
-            //} else {
-            //
-            //	TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            //
-            //	return -1;
-            //
-            //}
+					room.setState(1);
 
-        }
+					i = UpdateExe.get(this.getJdbcTemplate(), room);
+
+					if (i < 1) {
+						TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+					}
+				}
+
+			} else {
+
+				TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+
+				return -1;
+
+			}
+
+		}
 
         i = InsertExe.get(this.getJdbcTemplate(), chartInfo);
 

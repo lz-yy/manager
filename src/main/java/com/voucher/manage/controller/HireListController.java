@@ -1,5 +1,6 @@
 package com.voucher.manage.controller;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -7,13 +8,18 @@ import java.util.List;
 import java.util.Map;
 
 import com.voucher.manage.daoModel.*;
+import com.voucher.manage.tools.MyTestUtil;
 import com.voucher.manage2.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
 import com.voucher.manage.dao.CurrentDao;
+import com.voucher.manage2.dto.SysUserDTO;
 import com.voucher.manage2.exception.BaseException;
+import com.voucher.manage2.service.SysService;
+import com.voucher.manage2.tkmapper.entity.SysUserCondition;
+import com.voucher.manage2.utils.CommonUtils;
 import com.voucher.manage2.utils.MapUtils;
 import com.voucher.sqlserver.context.Connect;
 
@@ -28,8 +34,11 @@ public class HireListController {
     @Autowired
     private CurrentDao currentDao;
 
+    @Autowired
+    private SysService sysService;
+    
     @RequestMapping("getChartInfoList")
-    public Object getChartInfoList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException {
+    public Object getChartInfoList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
         ChartInfo chartInfo = new ChartInfo();
         System.out.println("jsonMap=" + jsonMap);
         Integer limit = MapUtils.getInteger("limit", jsonMap);
@@ -65,10 +74,12 @@ public class HireListController {
     }
 
     @RequestMapping("getChartInfoRoom")
-    public Object getChartInfo(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException {
+    public Object getChartInfo(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
 
-        Integer limit = 200;
-        Integer offset = 0;
+    	long startTime = System.currentTimeMillis();
+    	
+		Integer limit = MapUtils.getInteger("limit", jsonMap);
+		Integer offset = MapUtils.getInteger("offset", jsonMap);
 
         ChartInfo chartInfo = new ChartInfo();
         chartInfo.setLimit(limit);
@@ -90,6 +101,14 @@ public class HireListController {
         searchList.add("[ChartInfo].del=");
         searchList.add("0");
 
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        searchList.add("company_guid =");
+        searchList.add("1");
+        
+        searchList.add("address like");
+        searchList.add("%大北街%");
+        
         String chartGUID = MapUtils.getString("chartGUID", jsonMap);
 
         if (chartGUID != null) {
@@ -150,12 +169,18 @@ public class HireListController {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
+        
+        long endTime = System.currentTimeMillis();
+        long excTime = endTime - startTime;
+        System.out.println("当前调用方法为getChartInfoRoom");
+        System.out.println("执行时间:" + excTime);
+        
         return map;
 
     }
 
     @RequestMapping("getHireList")
-    public Object getHireList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException {
+    public Object getHireList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
         Integer limit = MapUtils.getInteger("limit", jsonMap);
         Integer offset = (MapUtils.getInteger("offset", jsonMap) - 1) * limit;
         String state = MapUtils.getString("state", jsonMap);
@@ -166,8 +191,10 @@ public class HireListController {
 
         List<String> searchList = new ArrayList<>();
 
-        searchList.add("state=");
-        searchList.add(state);
+		if (state != null) {
+			searchList.add("state=");
+			searchList.add(state);
+		}
         searchList.add("del=");
         searchList.add("0");
 
@@ -194,7 +221,7 @@ public class HireListController {
     }
 
     @RequestMapping("getHirePay")
-    public Object getHirePay(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException {
+    public Object getHirePay(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
         Integer limit = MapUtils.getInteger("limit", jsonMap);
         Integer offset = (MapUtils.getInteger("offset", jsonMap) - 1) * limit;
         String chartGUID = MapUtils.getString("ChartGUID", jsonMap);
@@ -251,4 +278,51 @@ public class HireListController {
         return currentDao.recycleField(line_uuid);
     }
 
+    @RequestMapping("getList")
+    public Object getList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
+
+        Room room = new Room();
+        Integer limit = MapUtils.getInteger("limit", jsonMap);
+        room.setLimit(limit);
+        room.setOffset(((MapUtils.getInteger("page", jsonMap)) - 1) * limit);
+        room.setNotIn("id");
+        Map<String, Object> query = MapUtils.getStrMap("query", jsonMap);
+        Object searchContent = query.get("searchContent");
+        Object state = query.get("state");
+        Object neaten_flow = query.get("neaten_flow");
+        String roomGuid = MapUtils.getString("roomGuid", jsonMap);
+
+        List<String> searchList = new ArrayList<>();
+
+
+      
+
+            searchList.add("state =");
+            searchList.add("7");
+ 
+        if (ObjectUtils.isNotEmpty(neaten_flow)) {
+            searchList.add("neaten_flow =");
+            searchList.add(neaten_flow.toString());
+        }
+        if (ObjectUtils.isNotEmpty(roomGuid)) {
+            searchList.add("room.guid =");
+            searchList.add(roomGuid);
+        }
+
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+       
+            searchList.add("company_guid =");
+            searchList.add("1");
+  
+            searchList.add("address like");
+            searchList.add("%大北街%");
+
+        searchList.add("del=");
+        searchList.add("0");
+        MyTestUtil.print(searchList);
+        String[] where = new String[searchList.size()];
+        room.setWhere(searchList.toArray(where));
+        room.setWhereTerm("or");
+        return currentDao.selectTable(room, "guid");
+    }
 }

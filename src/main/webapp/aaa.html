@@ -12,14 +12,14 @@
 </body>
 </html>
   <script type="text/javascript">
-  
-  getHireList();
+  //getlist();
+  bbb();
   
   function getlist(){ 
-		var data=JSON.stringify({"limit":10,"page":1});
+		var data=JSON.stringify({"limit":10,"page":1,"searchContent":"aaa"});
 	  	$.ajax({ 
 	      	type:"POST", 
-	      	url:"/manager/room/getList.do",   
+	      	url:"/manager/hireList/getList.do",   
 	      	contentType:"application/json",               
 	      	data:data, 
 	      	success:function(data){ 
@@ -43,7 +43,7 @@
 
   
   function bbb(){   //查合同
-		var data={"limit":10,"offset":0,"guid":"dc2e8301a27240aebdb85e212146fdbd","chartGUID":"f0c9a6c5-b37b-45b3-8f97-7922d93c3550"};
+		var data={"limit":5,"offset":0};
 	  	$.ajax({ 
 	      	type:"POST", 
 	      	url:"/manager/hireList/getChartInfoRoom.do", 
@@ -72,7 +72,7 @@
 	  }
   
   function getHireList(){   //查租金 
-		var data={"limit":10,"offset":0,"guid":"dc2e8301a27240aebdb85e212146fdbd","chartGUID":"f0c9a6c5-b37b-45b3-8f97-7922d93c3550"};
+		var data={"limit":10,"offset":1};
 	  	$.ajax({ 
 	      	type:"POST", 
 	      	url:"/manager/hireList/getHireList.do", 

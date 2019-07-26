@@ -8,12 +8,13 @@ import com.voucher.manage.daoModel.Test;
 import com.voucher.manage.tools.MyTestUtil;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 public class sqltest {
 	
-	public static void main(String[] args) throws ClassNotFoundException {
+	public static void main(String[] args) throws ClassNotFoundException, SQLException {
 		
 		ClassPathXmlApplicationContext applicationContext=new ClassPathXmlApplicationContext("spring-sqlservers.xml");
 		

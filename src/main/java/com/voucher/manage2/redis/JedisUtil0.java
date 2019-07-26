@@ -1,5 +1,6 @@
 package com.voucher.manage2.redis;
 
+import com.voucher.manage.tools.MyTestUtil;
 import com.voucher.manage2.exception.BaseException;
 import com.voucher.manage2.utils.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,10 @@ import org.springframework.stereotype.Component;
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +33,7 @@ public class JedisUtil0 {
     public void setShardedJedisPool(@Qualifier("shardedJedisPool0") ShardedJedisPool shardedJedisPool) {
         //方法前不能加static,加了无法注入
         JedisUtil0.shardedJedisPool = shardedJedisPool;
-        log.info("shardedJedisPool is set successfully！");
+        System.out.println("shardedJedisPool is set successfully！");
     }
 
 
@@ -44,7 +49,7 @@ public class JedisUtil0 {
                 shardedJedis = shardedJedisPool.getResource();
             }
         } catch (Exception e) {
-            log.error("[JedisUtil] get shardedJedis false:" + e);
+           System.out.println("[JedisUtil] get shardedJedis false:" + e);
         }
         return shardedJedis;
     }
@@ -79,7 +84,7 @@ public class JedisUtil0 {
             }
 
         } catch (Exception e) {
-            log.error("set string into redis error:" + e);
+           System.out.println("set string into redis error:" + e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -98,7 +103,7 @@ public class JedisUtil0 {
                 shardedJedis.hmset(key, map);
             }
         } catch (Exception e) {
-            log.error("set map into redis error:" + e);
+           System.out.println("set map into redis error:" + e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -117,7 +122,7 @@ public class JedisUtil0 {
                 shardedJedis.pipelined().hmset(key, map);
             }
         } catch (Exception e) {
-            log.error("set map into redis error:" + e);
+           System.out.println("set map into redis error:" + e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -160,7 +165,7 @@ public class JedisUtil0 {
                 map = mapTemp.isEmpty() ? null : mapTemp;
             }
         } catch (Exception e) {
-            log.error("shardedJedis.hkeys:{},get a exception：{}", key, e);
+           System.out.println("shardedJedis.hkeys:{},get a exception：{}"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -265,7 +270,7 @@ public class JedisUtil0 {
         try {
             shardedJedis.setex(key, expireSecond, value);
         } catch (Exception e) {
-            log.error("set data to redis unsuccessfully:{}", e);
+           System.out.println("set data to redis unsuccessfully:{}"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -277,7 +282,7 @@ public class JedisUtil0 {
         try {
             result = shardedJedis.exists(key);
         } catch (Exception e) {
-            log.error("judge data of redis unsuccessfully:{}", e);
+           System.out.println("judge data of redis unsuccessfully:{}"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -296,7 +301,7 @@ public class JedisUtil0 {
         try {
             shardedJedis.expire(key, expireSecond);
         } catch (Exception e) {
-            log.error("set expire to redis unsuccessfully:{}", e);
+           System.out.println("set expire to redis unsuccessfully:{}"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -307,7 +312,7 @@ public class JedisUtil0 {
         try {
             return shardedJedis.blpop(timeout, key);
         } catch (Exception e) {
-            log.error("getStringBlock from redis unsuccessfully:{}", e);
+           System.out.println("getStringBlock from redis unsuccessfully:{}"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -319,7 +324,7 @@ public class JedisUtil0 {
         try {
             shardedJedis.lpush(key, value);
         } catch (Exception e) {
-            log.error("getStringBlock from redis unsuccessfully!", e);
+           System.out.println("getStringBlock from redis unsuccessfully!"+e);
         } finally {
             releaseResource(shardedJedis);
         }
@@ -332,8 +337,10 @@ public class JedisUtil0 {
                 //6小时过期60 * 60 * 6
                 shardedJedis.setex(key.getBytes(), 21600, ObjectUtils.serialize(value));
             } catch (Exception e) {
-                log.error("setUserDTO to redis unsuccessfully!", e);
+
+            	System.out.println("setUserDTO to redis unsuccessfully!"+e);
                 throw BaseException.getDefault("登录失败!");
+
             } finally {
                 releaseResource(shardedJedis);
             }
@@ -346,11 +353,31 @@ public class JedisUtil0 {
             try {
                 return ObjectUtils.unserialize(shardedJedis.get(key.getBytes()));
             } catch (Exception e) {
-                log.error("setUserDTO to redis unsuccessfully!", e);
+               System.out.println("setUserDTO to redis unsuccessfully!"+ e);
             } finally {
                 releaseResource(shardedJedis);
             }
         }
         return null;
     }
+    
+	public static void setObject(String key, Object object) {
+		if (ObjectUtils.isNotEmpty(key, object)) {
+			ShardedJedis shardedJedis = getShardedJedis();
+			try {
+				if (shardedJedis != null) {
+					System.out.println("key======"+key.getBytes());
+					MyTestUtil.print(object);
+					shardedJedis.set(key.getBytes(), ObjectUtils.serialize(object));
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.out.println("set map into redis error:" + e);
+			} finally {
+				releaseResource(shardedJedis);
+			}
+		}
+	}
+
+    
 }

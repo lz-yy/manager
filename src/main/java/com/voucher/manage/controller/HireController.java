@@ -103,7 +103,8 @@ public class HireController {
             augment = MapUtils.getInteger("augment", jsonMap);
             increment = Float.valueOf(MapUtils.getString("increment", jsonMap));
             augmentGenre = MapUtils.getInteger("augmentGenre", jsonMap);
-            margin = MapUtils.getFloat("augmentDate", jsonMap);
+            augmentDate = MapUtils.getString("augmentDate", jsonMap);
+            margin = MapUtils.getFloat("margin", jsonMap);
             relet = MapUtils.getInteger("augmentGenre", jsonMap);
             oldChartGUID = MapUtils.getString("augmentDate", jsonMap);
         } catch (Exception e) {
@@ -183,7 +184,8 @@ public class HireController {
 
         chartInfo.setAllHire(allHires);
         chartInfo.setAllChartArea(allChartAreas);
-
+        chartInfo.setDel(0);
+        
         return hireDao.insertHire(chartInfo, chartRooms);
 
     }

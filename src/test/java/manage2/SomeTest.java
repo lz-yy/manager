@@ -11,7 +11,6 @@ import com.voucher.manage2.dto.MenuDTO;
 import com.voucher.manage2.dto.SysRouterDTO;
 import com.voucher.manage2.dto.SysUserDTO;
 import com.voucher.manage2.redis.JedisUtil0;
-import com.voucher.manage2.redis.JedisUtil1;
 import com.voucher.manage2.service.UserService;
 import com.voucher.manage2.tkmapper.entity.Select;
 import com.voucher.manage2.tkmapper.entity.SysUser;
@@ -53,7 +52,7 @@ public class SomeTest {
 
     @Test
     public void addField() {
-        JedisUtil1.setString("1", "1");
+        JedisUtil0.setString("1", "1");
     }
 
 

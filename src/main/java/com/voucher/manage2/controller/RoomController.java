@@ -3,6 +3,7 @@ package com.voucher.manage2.controller;
 import cn.hutool.core.util.IdUtil;
 import com.voucher.manage.dao.CurrentDao;
 import com.voucher.manage.daoModel.Room;
+import com.voucher.manage.tools.MyTestUtil;
 import com.voucher.manage2.dto.SysUserDTO;
 import com.voucher.manage2.service.RoomService;
 import com.voucher.manage2.service.SysService;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
 import java.util.*;
 
 @CrossOrigin
@@ -42,7 +44,7 @@ public class RoomController {
     private SysService sysService;
 
     @RequestMapping("getList")
-    public Object getList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException {
+    public Object getList(@RequestBody Map<String, Object> jsonMap) throws ClassNotFoundException, SQLException {
 
         Room room = new Room();
         Integer limit = MapUtils.getInteger("limit", jsonMap);
@@ -74,10 +76,10 @@ public class RoomController {
         }
 
         SysUserDTO currentUser = CommonUtils.getCurrentUser();
-        if (!CommonUtils.isSuperAdmin()) {
+       
             searchList.add("company_guid =");
             searchList.add(currentUser.getCompanyGuid());
-        }
+  
 
         List<String> userConditonList = new ArrayList<>();
         List<SysUserCondition> sysUserConditionList = sysService.getUserConditionsByUserGuid(currentUser.getGuid());
@@ -90,6 +92,7 @@ public class RoomController {
         searchList.addAll(userConditonList);
         searchList.add("del=");
         searchList.add("0");
+        MyTestUtil.print(searchList);
         String[] where = new String[searchList.size()];
         room.setWhere(searchList.toArray(where));
         room.setWhereTerm("or");
@@ -133,11 +136,18 @@ public class RoomController {
             }
         }
         //fieldName = "ccc";
-        return currentDao.addField("item_room", fieldName, filedType, selects, roomType);
+        String company="";
+        
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+        
+        if(currentUser!=null){
+        	company=currentUser.getCompanyGuid();
+        }
+        return currentDao.addField("item_room"+company, fieldName, filedType, selects, roomType);
     }
 
     @RequestMapping("delField")
-    public Integer delField(String line_uuid) throws BaseException {
+    public Integer delField(String line_uuid) {
         return currentDao.alterTable(false, "item_room", "guid", null, line_uuid);
     }
 

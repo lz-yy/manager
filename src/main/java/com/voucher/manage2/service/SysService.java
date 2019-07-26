@@ -20,7 +20,7 @@ public interface SysService {
 
     Integer updateRoleModels(List<SysRoleModel> roleModels, List<SysRoleModel> delModelGuids);
 
-    Integer addRoleMenus(List<SysRoleMenu> roleMenus);
+    //Integer addRoleMenus(List<SysRoleMenu> roleMenus);
 
     Integer updateUserRoles(List<SysUserRole> userRoles, List<SysUserRole> delUserRoles);
 

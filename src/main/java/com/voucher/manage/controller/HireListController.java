@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.voucher.manage.daoModel.*;
 import com.voucher.manage.tools.MyTestUtil;
+import com.voucher.manage2.redis.JedisUtil1;
 import com.voucher.manage2.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;

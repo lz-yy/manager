@@ -576,7 +576,15 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
 
         String tableName = (dbTable.name().length() < 1) ? cl.getName() : dbTable.name();//获取表的名字，如果没有在DBTable中定义，则获取类名作为Table的名字
 
-        String tableName2 = "[item_" + tableName.substring(1, tableName.length());
+        SysUserDTO currentUser = CommonUtils.getCurrentUser();
+
+        String company="";
+
+        if(currentUser!=null){
+            company=currentUser.getCompanyGuid();
+        }
+
+        String tableName2 = "[item_" + tableName.substring(1, tableName.length()-1)+company+"]";
 
         val = val.substring(1, val.length() - 1);
 
@@ -610,16 +618,12 @@ public class CurrentDaoImpl extends JdbcDaoSupport implements CurrentDao {
         String sql = " insert into " + tableName2 + " (" + fields + ") " +
                 " values (" + values + ")";
 
-     //   result = this.getJdbcTemplate().update(sql, params.toArray());
+        result = this.getJdbcTemplate().update(sql, params.toArray());
 
-     //   result = InsertExe.get(this.getJdbcTemplate(), object);
+        result = InsertExe.get(this.getJdbcTemplate(), object);
 
-        String key=tableName2+"_columnName";
-        
-        JedisUtil1.deleteData(key);
-        
-        System.out.print("key=========="+key);
-        
+        SpringUtils.setRollbackOnly(result<1);
+
         return result;
 
     }

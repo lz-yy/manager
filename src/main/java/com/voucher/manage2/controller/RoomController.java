@@ -5,6 +5,7 @@ import com.voucher.manage.dao.CurrentDao;
 import com.voucher.manage.daoModel.Room;
 import com.voucher.manage.tools.MyTestUtil;
 import com.voucher.manage2.dto.SysUserDTO;
+import com.voucher.manage2.redis.JedisUtil1;
 import com.voucher.manage2.service.RoomService;
 import com.voucher.manage2.service.SysService;
 import com.voucher.manage2.tkmapper.entity.RoomIn;
@@ -143,6 +144,10 @@ public class RoomController {
         if(currentUser!=null){
         	company=currentUser.getCompanyGuid();
         }
+        String key="[item_room"+company+"]_columnName";
+        JedisUtil1.deleteData(key);
+        key="[room]_alias"+company;
+        JedisUtil1.deleteData(key);
         return currentDao.addField("item_room"+company, fieldName, filedType, selects, roomType);
     }
 

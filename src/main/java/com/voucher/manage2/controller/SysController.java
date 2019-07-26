@@ -144,19 +144,19 @@ public class SysController {
         return sysService.updateRoleModels(addroleModels, delroleModels);
     }
 
-    @RequestMapping("addRoleMenus")
-    public Integer addRoleMenus(@RequestBody Map<String, Object> jsonMap) {
-        List<String> menuGuids = MapUtils.getStrList("menuGuids", jsonMap);
-        List<SysRoleMenu> roleModels = new ArrayList<>();
-        String roleGuid = MapUtils.getString("roleGuid", jsonMap);
-        for (String menuGuid : menuGuids) {
-            SysRoleMenu sysRoleMenu = new SysRoleMenu();
-            sysRoleMenu.setMenuGuid(menuGuid);
-            sysRoleMenu.setRoleGuid(roleGuid);
-            roleModels.add(sysRoleMenu);
-        }
-        return sysService.addRoleMenus(roleModels);
-    }
+    //@RequestMapping("addRoleMenus")
+    //public Integer addRoleMenus(@RequestBody Map<String, Object> jsonMap) {
+    //    List<String> menuGuids = MapUtils.getStrList("menuGuids", jsonMap);
+    //    List<SysRoleMenu> roleModels = new ArrayList<>();
+    //    String roleGuid = MapUtils.getString("roleGuid", jsonMap);
+    //    for (String menuGuid : menuGuids) {
+    //        SysRoleMenu sysRoleMenu = new SysRoleMenu();
+    //        sysRoleMenu.setMenuGuid(menuGuid);
+    //        sysRoleMenu.setRoleGuid(roleGuid);
+    //        roleModels.add(sysRoleMenu);
+    //    }
+    //    return sysService.addRoleMenus(roleModels);
+    //}
 
     @RequestMapping("updateUserRoles")
     public Integer updateUserRoles(@RequestBody Map<String, Object> jsonMap) {

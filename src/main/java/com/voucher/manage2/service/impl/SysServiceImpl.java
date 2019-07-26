@@ -87,10 +87,10 @@ public class SysServiceImpl implements SysService {
         return success;
     }
 
-    @Override
-    public Integer addRoleMenus(List<SysRoleMenu> roleMenus) {
-        return sysRoleMenuMapper.insertList(roleMenus);
-    }
+    //@Override
+    //public Integer addRoleMenus(List<SysRoleMenu> roleMenus) {
+    //    return sysRoleMenuMapper.insertList(roleMenus);
+    //}
 
     @Override
     @Transactional(rollbackFor = Exception.class)

@@ -89,6 +89,7 @@ public class FileServiceImpl implements FileService {
     public UploadFile fileUpload(MultipartFile file, String menuGuid) {
         String fileGuid = IdUtil.simpleUUID() + "_" + file.getOriginalFilename();
         File tarFile = tarFile = FileUtils.getFileByFileName(fileGuid);
+        UploadFile uploadFile = new UploadFile();
         try {
             //文件后缀名
             String suffixName = FileTypeUtil.getType(file.getInputStream());
@@ -106,7 +107,7 @@ public class FileServiceImpl implements FileService {
             //
             //}
             //文件入库
-            UploadFile uploadFile = new UploadFile();
+
             uploadFile.setGuid(fileGuid);
             uploadFile.setType(fileType);
             uploadFile.setUploadTime(System.currentTimeMillis());
@@ -120,6 +121,6 @@ public class FileServiceImpl implements FileService {
             }
             throw new FileUploadException(file.getOriginalFilename(), e);
         }
-        return null;
+        return uploadFile;
     }
 }

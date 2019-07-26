@@ -6,8 +6,6 @@ import com.voucher.manage2.exception.BaseException;
 import com.voucher.manage2.exception.FileUploadException;
 import com.voucher.manage2.redis.JedisUtil0;
 import com.voucher.manage2.service.FileService;
-import com.voucher.manage2.service.impl.RoomFileServerceImpl;
-import com.voucher.manage2.tkmapper.entity.UploadFile;
 import com.voucher.manage2.utils.MapUtils;
 import com.voucher.manage2.utils.ObjectUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -38,13 +36,13 @@ import java.util.*;
 @RequestMapping("file")
 public class FileController {
     @Autowired
-    private RoomFileServerceImpl roomFileServerceImpl;
+    private FileService fileService;
     @Autowired
     private CommonsMultipartResolver multipartResolver;
 
     @PostMapping("upload")
     @ResponseBody
-    public UploadFile springUpload(HttpServletRequest request, String[] roomGuids, String menuGuid) {
+    public void springUpload(HttpServletRequest request, String[] roomGuids, String menuGuid) {
         //检查form中是否有enctype="multipart/form-data"
         if (ObjectUtils.isEmpty(menuGuid, roomGuids)) {
             throw BaseException.getDefault("请选择资产和菜单");
@@ -55,15 +53,14 @@ public class FileController {
             //获取multiRequest 中所有的文件名
             Iterator iter = multiRequest.getFileNames();
 
-            //while (iter.hasNext()) {
-            //一次遍历所有文件
-            MultipartFile file = multiRequest.getFile(iter.next().toString());
-            if (file != null) {
-                return roomFileServerceImpl.fileUpload(file, menuGuid, Lists.newArrayList(roomGuids));
-                //}
+            while (iter.hasNext()) {
+                //一次遍历所有文件
+                MultipartFile file = multiRequest.getFile(iter.next().toString());
+                if (file != null) {
+                    fileService.fileUpload(file, Lists.newArrayList(roomGuids), menuGuid);
+                }
             }
         }
-        return null;
     }
 
     @GetMapping(value = "/download")
@@ -92,7 +89,7 @@ public class FileController {
     @ResponseBody
     public void delFile(@RequestBody Map<String, Object> jsonMap) {
         String url = MapUtils.getString("url", jsonMap);
-        roomFileServerceImpl.delFile(url.substring(url.lastIndexOf("\\") + 1));
+        fileService.delFile(url.substring(url.lastIndexOf("\\") + 1));
     }
 
     @RequestMapping("/hireUpload")
